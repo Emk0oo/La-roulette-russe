@@ -85,18 +85,12 @@ import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
+const { $socket } = useNuxtApp()
 
 // State
 const gameCode = ref('')
 const players = ref([])
 const wsConnected = ref(false)
-
-// Données de test pour le développement
-const mockPlayers = [
-  { id: '1234567890', name: 'Alice' },
-  { id: '0987654321', name: 'Bob' },
-  { id: '1357924680', name: 'Charlie' },
-]
 
 // Get game code from URL
 onMounted(() => {
@@ -106,48 +100,75 @@ onMounted(() => {
     return
   }
   
-  // Initialisation WebSocket (placeholder)
-  initWebSocket()
+  // Vérifier la connexion WebSocket
+  if (!$socket.connected) {
+    $socket.connect()
+  }
   
-  // Pour le développement, on ajoute des joueurs de test
-  // À retirer quand le WebSocket sera implémenté
-  setTimeout(() => {
-    players.value = mockPlayers
+  // Définir le statut de connexion
+  wsConnected.value = $socket.connected
+  
+  // Écouter les événements de connexion
+  $socket.on('connect', () => {
     wsConnected.value = true
-  }, 1000)
+    console.log('WebSocket connecté')
+    
+    // Récupérer les infos de la room
+    $socket.emit('get-room-info', gameCode.value)
+  })
+  
+  $socket.on('disconnect', () => {
+    wsConnected.value = false
+    console.log('WebSocket déconnecté')
+  })
+  
+  // Écouter l'arrivée de nouveaux joueurs
+  $socket.on('player-joined', ({ player, players: allPlayers }) => {
+    console.log('Nouveau joueur:', player.name)
+    players.value = allPlayers
+  })
+  
+  // Écouter le départ de joueurs
+  $socket.on('player-left', ({ playerId, playerName, players: remainingPlayers }) => {
+    console.log('Joueur parti:', playerName)
+    players.value = remainingPlayers
+  })
+  
+  // Écouter les infos de la room
+  $socket.on('room-info', ({ room }) => {
+    if (room) {
+      players.value = room.players
+    }
+  })
+  
+  // Gérer la déconnexion de l'hôte
+  $socket.on('host-disconnected', () => {
+    alert('L\'hôte s\'est déconnecté. La partie est annulée.')
+    router.push('/')
+  })
+  
+  // Gérer le démarrage de la partie
+  $socket.on('game-started', () => {
+    console.log('La partie commence!')
+    router.push(`/admin/game/play?gameId=${gameCode.value}`)
+  })
 })
 
 // Cleanup
 onUnmounted(() => {
-  disconnectWebSocket()
+  $socket.off('connect')
+  $socket.off('disconnect')
+  $socket.off('player-joined')
+  $socket.off('player-left')
+  $socket.off('room-info')
+  $socket.off('host-disconnected')
+  $socket.off('game-started')
 })
-
-// WebSocket functions (placeholders)
-const initWebSocket = () => {
-  // TODO: Implémenter la connexion WebSocket
-  console.log('WebSocket init placeholder')
-}
-
-const disconnectWebSocket = () => {
-  // TODO: Implémenter la déconnexion WebSocket
-  console.log('WebSocket disconnect placeholder')
-}
-
-const onPlayerJoin = (player) => {
-  // TODO: Gérer l'arrivée d'un nouveau joueur
-  players.value.push(player)
-}
-
-const onPlayerLeave = (playerId) => {
-  // TODO: Gérer le départ d'un joueur
-  players.value = players.value.filter(p => p.id !== playerId)
-}
 
 // Game functions
 const startGame = () => {
-  // TODO: Implémenter le démarrage de la partie
   console.log('Démarrage de la partie avec', players.value.length, 'joueurs')
-  // router.push('/admin/game/play?gameId=' + gameCode.value)
+  $socket.emit('start-game', gameCode.value)
 }
 
 // Utility functions

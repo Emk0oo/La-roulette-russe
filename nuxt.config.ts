@@ -7,6 +7,11 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      allowedHosts: [
+        '9e4c-159-180-237-155.ngrok-free.app'
+      ]
+    }
   },
   nitro: {
     experimental: {
