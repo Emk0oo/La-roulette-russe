@@ -62,11 +62,32 @@ const form = reactive({
   password: ''
 });
 
+const router = useRouter();
+
+function goToWaitingRoom() {
+  // Redirection vers la salle d'attente
+  router.push('/waiting-room');
+}
+
+function goToCreateGame() {
+  // Redirection vers la page de création de jeu
+  router.push('/admin/create-game');
+}
+
 const handleLogin = () => {
   // Ici, vous pourriez implémenter la logique de connexion
   console.log('Tentative de connexion avec', form.username);
   
   // Pour l'instant, on affiche juste une alerte
-  alert(`Tentative de connexion avec l'identifiant : ${form.username}`);
+  // alert(`Tentative de connexion avec l'identifiant : ${form.username}`);
+
+  if(form.username === 'admin' && form.password === 'admin') {
+    // Redirection vers la page d'administration
+    goToCreateGame();
+  } else {
+    // Afficher un message d'erreur
+    // alert('Identifiant ou mot de passe incorrect');
+    goToWaitingRoom();
+  }
 };
 </script>
