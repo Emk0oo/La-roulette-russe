@@ -4,18 +4,24 @@
   </div>
   <div class="flex flex-col items-center mt-4">
     <button
-      class="px-4 py-3 rounded-xl bg-blue-500 text-white text-lg"
+      class="px-4 py-3 rounded-xl bg-blue-500 text-white text-lg cursor-pointer hover:bg-blue-600 transition-colors duration-300"
       @click="createGame"
     >
       Créer une partie
     </button>
+
+    <div v-if="gameId != null" class="mt-4">
+      <p class="text-gray-700">ID de la partie : {{ gameId }}</p>
+    </div>
   </div>
 </template>
 
-<script>
-function createGame() {}
+<script setup>
+const router = useRouter();
 
-function generateRandomChars() {
+let gameId = ref(null);
+
+const generateRandomChars = () => {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let result = "";
@@ -26,9 +32,17 @@ function generateRandomChars() {
   }
   result = result.toUpperCase(); // Convertir en majuscules
   return result;
-}
+};
 
-// Exemple d'utilisation
-console.log(generateRandomChars()); // Ex: "aB3kL9"
-console.log(generateRandomChars()); // Ex: "P2mX7q"
+const createGame = () => {
+   gameId = generateRandomChars();
+  console.log("Game ID:", gameId);
+  goToDashboard();
+
+};
+
+const goToDashboard = () => {
+  console.log("Navigating to dashboard");
+  router.push("/admin/dashboard?gameId=" + gameId);
+};
 </script>
