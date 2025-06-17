@@ -1,31 +1,27 @@
 // plugins/socket.client.js
-import { io } from 'socket.io-client';
+import { io } from 'socket.io-client'
 
 export default defineNuxtPlugin(() => {
-  // Détection automatique de l'environnement
+  const config = useRuntimeConfig()
+  
   const getSocketUrl = () => {
-    if (process.client) {
-      // Côté client
-      if (window.location.hostname === 'localhost') {
-        return 'http://localhost:3001'
-      } else {
-        // En production, utilisez la même origine mais sur un port différent
-        // ou une URL complètement différente
-        return `${window.location.protocol}//${window.location.hostname}:3001`
-        // ou return 'https://votre-api.com'
-      }
+    // En développement
+    if (process.dev) {
+      return 'http://localhost:3001'
     }
-    // Côté serveur (fallback)
-    return 'http://localhost:3001'
+    
+    // En production
+    return config.public.socketUrl || 'https://nodelarouletterusse-production.up.railway.app/'
   }
   
   const socket = io(getSocketUrl(), {
-    autoConnect: false
-  });
+    autoConnect: false,
+    transports: ['websocket', 'polling']
+  })
 
   return {
     provide: {
       socket,
     },
-  };
-});
+  }
+})
