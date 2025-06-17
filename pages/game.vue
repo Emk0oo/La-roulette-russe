@@ -408,7 +408,7 @@ const watchAsSpectator = () => {
 }
 
 const backToHome = () => {
-  router.push('/')
+  router.push('/join')
 }
 
 const getPositionSuffix = (position) => {
