@@ -2,19 +2,25 @@
   <div class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
       <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">Rejoindre une partie</h1>
-
+      
       <div v-if="!joined" class="space-y-6">
         <!-- Code de partie -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Code de la partie</label>
           <input
-              v-model="gameCode"
-              type="text"
-              maxlength="6"
-              placeholder="ABC123"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @input="gameCode = gameCode.toUpperCase()"
+            v-model="gameCode"
+            type="text"
+            maxlength="6"
+            placeholder="ABC123"
+            :class="[
+              'w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500',
+              fromQrCode ? 'bg-green-50 border-green-300' : ''
+            ]"
+            @input="gameCode = gameCode.toUpperCase()"
           >
+          <p v-if="fromQrCode" class="text-sm text-green-600 mt-1 text-center">
+            ✅ Code détecté automatiquement
+          </p>
         </div>
 
         <!-- Section photo avec condition v-if/v-else -->
@@ -50,11 +56,12 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Ton nom</label>
           <input
-              v-model="playerName"
-              type="text"
-              placeholder="Entre ton nom"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @keyup.enter="joinGame"
+            v-model="playerName"
+            type="text"
+            placeholder="Entre ton nom"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @keyup.enter="joinGame"
+            ref="playerNameInput"
           >
         </div>
 
@@ -71,6 +78,13 @@
         <div v-if="error" class="p-4 bg-red-100 text-red-700 rounded-lg text-center">
           {{ error }}
         </div>
+
+        <!-- Instructions pour scanner QR -->
+        <div v-if="!fromQrCode" class="text-center">
+          <p class="text-sm text-gray-500">
+            💡 Tu peux aussi scanner le QR code sur l'écran de l'organisateur
+          </p>
+        </div>
       </div>
 
       <!-- État connecté -->
@@ -82,7 +96,14 @@
         <div class="bg-gray-100 rounded-lg p-4 mb-4">
           <p class="text-lg font-mono">{{ gameCode }}</p>
         </div>
-        <p class="text-gray-500 mb-4">En attente du lancement de la partie...</p>
+        <p class="text-gray-500">En attente du lancement de la partie...</p>
+
+        <!-- Indicateur que c'est venu du QR code -->
+        <div v-if="fromQrCode" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p class="text-sm text-green-700">
+            📱 Connexion via QR code réussie !
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -90,7 +111,8 @@
 
 <script setup>
 const { $socket } = useNuxtApp();
-const router = useRouter();
+const router = useRouter()
+const route = useRoute()
 
 const gameCode = ref('');
 const playerName = ref('');
@@ -100,6 +122,8 @@ const photo = ref(null); // Pour stocker l'image capturée en base64
 const playerEmoji = ref('🎮');
 const videoRef = ref(null); // Référence au tag <video>
 const stream = ref(null); // Stocke le flux vidéo
+const fromQrCode = ref(false)
+const playerNameInput = ref(null)
 
 // Démarrer la caméra
 const startCamera = async () => {
@@ -169,6 +193,26 @@ const joinGame = () => {
 
 // Démarrer la caméra au montage du composant
 onMounted(() => {
+  // Vérifier si un gameId est passé en paramètre d'URL
+  const gameIdFromUrl = route.query.gameId
+  if (gameIdFromUrl) {
+    gameCode.value = gameIdFromUrl.toString().toUpperCase()
+    fromQrCode.value = true
+
+    // Mettre le focus sur le champ nom du joueur pour une meilleure UX
+    nextTick(() => {
+      if (playerNameInput.value) {
+        playerNameInput.value.focus()
+      }
+    })
+  }
+
+  // Récupérer le nom du joueur depuis localStorage s'il existe
+  const savedPlayerName = localStorage.getItem('playerName')
+  if (savedPlayerName) {
+    playerName.value = savedPlayerName
+  }
+
   if (!$socket.connected) {
     $socket.connect();
   }
@@ -202,5 +246,28 @@ onMounted(() => {
     gameCode.value = ''
     error.value = 'La partie a été annulée'
   })
-});
+})
+
+onUnmounted(() => {
+  $socket.off('joined-room')
+  $socket.off('join-error')
+  $socket.off('game-started-player')
+  $socket.off('host-disconnected')
+})
+
+/*const joinGame = () => {
+  if (!gameCode.value || !playerName.value) {
+    error.value = 'Merci de remplir tous les champs'
+    return
+  }
+  
+  // Sauvegarder le nom du joueur
+  localStorage.setItem('playerName', playerName.value)
+  
+  console.log('Tentative de connexion à la partie:', gameCode.value)
+  $socket.emit('join-room', {
+    gameId: gameCode.value,
+    playerName: playerName.value
+  })
+}*/
 </script>

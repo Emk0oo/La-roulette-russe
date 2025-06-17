@@ -13,20 +13,56 @@
         </button>
       </div>
 
-      <!-- Code Display -->
-      <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8 text-center">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-          Code de la partie
+      <!-- Code Display avec QR Code -->
+      <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">
+          Rejoindre la partie
         </h2>
-        <div class="bg-gray-900 rounded-xl p-8 inline-block">
-          <p class="text-6xl font-bold text-white tracking-wider font-mono">
-            {{ gameCode }}
-          </p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Code de la partie -->
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Code de la partie</h3>
+            <div class="bg-gray-900 rounded-xl p-6 inline-block">
+              <p class="text-5xl font-bold text-white tracking-wider font-mono">
+                {{ gameCode }}
+              </p>
+            </div>
+            <p class="mt-4 text-gray-600 text-sm">
+              Tapez ce code sur 
+              <span class="font-semibold text-blue-600">{{ baseUrl }}/join</span>
+            </p>
+          </div>
+
+          <!-- QR Code -->
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">QR Code</h3>
+            <div class="inline-block bg-white p-4 rounded-xl shadow-inner border-2 border-gray-100">
+              <div ref="qrCodeContainer" class="flex justify-center"></div>
+            </div>
+            <p class="mt-4 text-gray-600 text-sm">
+              📱 Scanner avec votre téléphone
+            </p>
+            <p class="text-xs text-gray-500 mt-2 break-all">
+              {{ gameUrl }}
+            </p>
+          </div>
         </div>
-        <p class="mt-4 text-gray-600">
-          Partagez ce code avec les joueurs pour qu'ils puissent rejoindre sur
-          <span class="font-semibold">quiz.votresite.com</span>
-        </p>
+
+        <!-- Instructions -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-800 mb-2">💡 Comment rejoindre :</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+            <div class="flex items-start space-x-2">
+              <span class="text-blue-500">1️⃣</span>
+              <span>Aller sur <strong>{{ baseUrl }}/join</strong> et taper le code</span>
+            </div>
+            <div class="flex items-start space-x-2">
+              <span class="text-blue-500">2️⃣</span>
+              <span>Scanner le QR code avec votre téléphone</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Players Section -->
@@ -96,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
@@ -107,6 +143,48 @@ const { $socket } = useNuxtApp();
 const gameCode = ref("");
 const players = ref([]);
 const wsConnected = ref(false);
+const qrCodeContainer = ref(null);
+const gameUrl = ref("");
+const baseUrl = ref("");
+
+// Méthodes
+const getBaseUrl = () => {
+  // En développement
+  if (process.dev || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) {
+    return 'http://localhost:3000'
+  }
+  
+  // En production - utiliser l'URL actuelle
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
+  
+  // Fallback pour le SSR
+  return 'https://la-roulette-russe.vercel.app'
+}
+
+const generateQRCode = () => {
+  if (!qrCodeContainer.value || !gameCode.value) return
+  
+  // Nettoyer le conteneur
+  qrCodeContainer.value.innerHTML = ''
+  
+  const base = getBaseUrl()
+  baseUrl.value = base
+  gameUrl.value = `${base}/join?gameId=${gameCode.value}`
+  
+  // Créer le QR code avec l'API QR Server
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(gameUrl.value)}&bgcolor=FFFFFF&color=000000&margin=10`
+  
+  const img = document.createElement('img')
+  img.src = qrCodeUrl
+  img.alt = 'QR Code pour rejoindre la partie'
+  img.className = 'rounded-lg shadow-sm'
+  img.style.width = '150px'
+  img.style.height = '150px'
+  
+  qrCodeContainer.value.appendChild(img)
+}
 
 // Get game code from URL
 onMounted(() => {
@@ -115,6 +193,11 @@ onMounted(() => {
     router.push("/admin");
     return;
   }
+
+  // Générer le QR code après le montage
+  nextTick(() => {
+    generateQRCode()
+  })
 
   // Vérifier la connexion WebSocket
   if (!$socket.connected) {
