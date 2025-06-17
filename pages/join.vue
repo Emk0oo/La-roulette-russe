@@ -12,9 +12,15 @@
             type="text"
             maxlength="6"
             placeholder="ABC123"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+            :class="[
+              'w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500',
+              fromQrCode ? 'bg-green-50 border-green-300' : ''
+            ]"
             @input="gameCode = gameCode.toUpperCase()"
           >
+          <p v-if="fromQrCode" class="text-sm text-green-600 mt-1 text-center">
+            ✅ Code détecté automatiquement
+          </p>
         </div>
         
         <!-- Nom du joueur -->
@@ -26,6 +32,7 @@
             placeholder="Entre ton nom"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             @keyup.enter="joinGame"
+            ref="playerNameInput"
           >
         </div>
         
@@ -42,6 +49,13 @@
         <div v-if="error" class="p-4 bg-red-100 text-red-700 rounded-lg text-center">
           {{ error }}
         </div>
+
+        <!-- Instructions pour scanner QR -->
+        <div v-if="!fromQrCode" class="text-center">
+          <p class="text-sm text-gray-500">
+            💡 Tu peux aussi scanner le QR code sur l'écran de l'organisateur
+          </p>
+        </div>
       </div>
       
       <!-- État connecté -->
@@ -53,6 +67,13 @@
           <p class="text-lg font-mono">{{ gameCode }}</p>
         </div>
         <p class="text-gray-500">En attente du lancement de la partie...</p>
+        
+        <!-- Indicateur que c'est venu du QR code -->
+        <div v-if="fromQrCode" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p class="text-sm text-green-700">
+            📱 Connexion via QR code réussie !
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -61,14 +82,37 @@
 <script setup>
 const { $socket } = useNuxtApp()
 const router = useRouter()
+const route = useRoute()
 
 const gameCode = ref('')
 const playerName = ref('')
 const joined = ref(false)
 const error = ref('')
 const playerEmoji = ref('🎮')
+const fromQrCode = ref(false)
+const playerNameInput = ref(null)
 
 onMounted(() => {
+  // Vérifier si un gameId est passé en paramètre d'URL
+  const gameIdFromUrl = route.query.gameId
+  if (gameIdFromUrl) {
+    gameCode.value = gameIdFromUrl.toString().toUpperCase()
+    fromQrCode.value = true
+    
+    // Mettre le focus sur le champ nom du joueur pour une meilleure UX
+    nextTick(() => {
+      if (playerNameInput.value) {
+        playerNameInput.value.focus()
+      }
+    })
+  }
+
+  // Récupérer le nom du joueur depuis localStorage s'il existe
+  const savedPlayerName = localStorage.getItem('playerName')
+  if (savedPlayerName) {
+    playerName.value = savedPlayerName
+  }
+
   if (!$socket.connected) {
     $socket.connect()
   }
@@ -108,7 +152,7 @@ onMounted(() => {
 onUnmounted(() => {
   $socket.off('joined-room')
   $socket.off('join-error')
-  $socket.off('game-started-player') // au lieu de 'game-started'
+  $socket.off('game-started-player')
   $socket.off('host-disconnected')
 })
 

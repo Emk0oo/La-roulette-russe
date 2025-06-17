@@ -269,7 +269,8 @@ const generateQRCode = () => {
   qrCodeContainer.value.innerHTML = ''
   
   const baseUrl = getBaseUrl()
-  gameUrl.value = `${baseUrl}/game?gameId=${gameCode.value}`
+  // Nouvelle URL vers /join au lieu de /game
+  gameUrl.value = `${baseUrl}/join?gameId=${gameCode.value}`
   
   // Créer le QR code avec l'API QR Server
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(gameUrl.value)}&bgcolor=FFFFFF&color=000000&margin=10`
