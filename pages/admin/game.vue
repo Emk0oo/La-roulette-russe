@@ -4,12 +4,30 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-8">
         <h1 class="text-3xl font-bold text-white">Tableau de bord - Partie en cours</h1>
-        <div class="text-white">
-          <span class="text-xl">Code: </span>
-          <span class="text-2xl font-mono font-bold">{{ gameCode }}</span>
+        <div class="flex items-center space-x-6">
+          <!-- QR Code -->
+          <div class="bg-white p-4 rounded-xl shadow-lg">
+            <div class="text-center mb-2">
+              <p class="text-sm font-semibold text-gray-700">Rejoindre la partie</p>
+            </div>
+            <div ref="qrCodeContainer" class="flex justify-center"></div>
+            <div class="text-center mt-2">
+              <p class="text-xs text-gray-500">Scanner avec votre téléphone</p>
+              <p class="text-xs text-blue-600 mt-1 break-all">{{ gameUrl }}</p>
+            </div>
+          </div>
+          
+          <!-- Code de la partie -->
+          <div class="text-white text-center">
+            <span class="text-xl">Code: </span>
+            <div class="text-2xl font-mono font-bold bg-white/20 px-4 py-2 rounded-lg">
+              {{ gameCode }}
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Reste du template identique... -->
       <!-- Question actuelle -->
       <div v-if="currentQuestion" class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
         <div class="flex justify-between items-center mb-4">
@@ -175,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
@@ -195,6 +213,8 @@ const eliminatedPlayers = ref([])
 const recentEliminatedPlayers = ref([])
 const finalScores = ref([])
 const gameEndReason = ref('')
+const qrCodeContainer = ref(null)
+const gameUrl = ref('')
 
 // Computed
 const sortedPlayers = computed(() => {
@@ -232,6 +252,38 @@ const getActivePosition = (player) => {
   return activePlayersSorted.findIndex(p => p.id === player.id) + 1
 }
 
+const getBaseUrl = () => {
+  // En développement
+  if (process.dev || window.location.hostname === 'localhost') {
+    return 'http://localhost:3000'
+  }
+  
+  // En production - utiliser l'URL actuelle
+  return window.location.origin
+}
+
+const generateQRCode = () => {
+  if (!qrCodeContainer.value || !gameCode.value) return
+  
+  // Nettoyer le conteneur
+  qrCodeContainer.value.innerHTML = ''
+  
+  const baseUrl = getBaseUrl()
+  gameUrl.value = `${baseUrl}/game?gameId=${gameCode.value}`
+  
+  // Créer le QR code avec l'API QR Server
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(gameUrl.value)}&bgcolor=FFFFFF&color=000000&margin=10`
+  
+  const img = document.createElement('img')
+  img.src = qrCodeUrl
+  img.alt = 'QR Code pour rejoindre la partie'
+  img.className = 'rounded-lg shadow-sm'
+  img.style.width = '120px'
+  img.style.height = '120px'
+  
+  qrCodeContainer.value.appendChild(img)
+}
+
 // Lifecycle
 onMounted(() => {
   gameCode.value = route.query.gameId || ''
@@ -243,6 +295,11 @@ onMounted(() => {
   if (!$socket.connected) {
     $socket.connect()
   }
+
+  // Générer le QR code après le montage
+  nextTick(() => {
+    generateQRCode()
+  })
 
   // Récupérer les infos de la room
   $socket.emit('get-room-info', gameCode.value)
