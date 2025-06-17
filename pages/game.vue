@@ -46,19 +46,18 @@
         <!-- Options de réponse -->
         <div class="grid grid-cols-2 gap-4">
           <button
-            v-for="(option, index) in currentQuestion.options"
-            :key="index"
-            @click="submitAnswer(index)"
-            :disabled="hasAnswered"
-            :class="[
-              'p-6 rounded-lg font-semibold text-lg transition-all duration-300',
-              hasAnswered && selectedAnswer === index
-                ? 'bg-blue-500 text-white scale-105 shadow-lg'
-                : hasAnswered
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
-                : 'bg-gray-100 hover:bg-blue-100 hover:scale-105 cursor-pointer shadow-md'
-            ]"
-          >
+              v-for="(option, index) in shuffledOptions"
+              :key="index"
+              @click="submitAnswer(index)"
+              :disabled="hasAnswered"
+              :class="[
+                'p-6 rounded-lg font-semibold text-lg transition-all duration-300',
+                hasAnswered && selectedAnswer === index
+                  ? 'bg-blue-500 text-white scale-105 shadow-lg'
+                  : hasAnswered
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
+                  : 'bg-gray-100 hover:bg-blue-100 hover:scale-105 cursor-pointer shadow-md'
+              ]">
             {{ option }}
           </button>
         </div>
@@ -185,6 +184,7 @@ const gameStatus = ref('waiting') // waiting, question, results, ended
 const playerName = ref('')
 const playerScore = ref(7)
 const currentQuestion = ref(null)
+const shuffledOptions = ref([])
 const timeRemaining = ref(20)
 const hasAnswered = ref(false)
 const selectedAnswer = ref(null)
@@ -227,6 +227,14 @@ const getPositionSuffix = (position) => {
   if (position === 1) return 'er'
   return 'ème'
 }
+
+function shuffleArray(array) {
+  return array
+      .map((value) => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value)
+}
+
 
 // Lifecycle
 onMounted(() => {
@@ -286,6 +294,8 @@ onMounted(() => {
     selectedAnswer.value = null
     questionResults.value = null
     myResult.value = null
+
+    shuffledOptions.value = shuffleArray(question.options)
   })
 
   $socket.on('time-update', ({ timeRemaining: time }) => {
