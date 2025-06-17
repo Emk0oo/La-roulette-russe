@@ -90,9 +90,10 @@ onMounted(() => {
   })
   
   // Écouter le démarrage de la partie
-  $socket.on('game-started', ({ gameId }) => {
-    console.log('La partie commence!')
-    router.push(`/game/play?gameId=${gameId}`)
+  $socket.on('game-started-player', ({ gameId }) => {
+    console.log('La partie commence! (Joueur)')
+    // Les joueurs vont vers /game
+    router.push(`/game?gameId=${gameId}`)
   })
   
   // Écouter la déconnexion de l'hôte
@@ -107,7 +108,7 @@ onMounted(() => {
 onUnmounted(() => {
   $socket.off('joined-room')
   $socket.off('join-error')
-  $socket.off('game-started')
+  $socket.off('game-started-player') // au lieu de 'game-started'
   $socket.off('host-disconnected')
 })
 
@@ -116,6 +117,9 @@ const joinGame = () => {
     error.value = 'Merci de remplir tous les champs'
     return
   }
+  
+  // Sauvegarder le nom du joueur
+  localStorage.setItem('playerName', playerName.value)
   
   console.log('Tentative de connexion à la partie:', gameCode.value)
   $socket.emit('join-room', {
