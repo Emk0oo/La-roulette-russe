@@ -20,13 +20,138 @@
       </div>
     </div>
 
-    <!-- Question en cours -->
+    <!-- Joueur éliminé -->
+    <div v-else-if="gameStatus === 'eliminated'" class="flex items-center justify-center min-h-screen">
+      <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
+        <!-- Animation d'élimination -->
+        <div class="mb-6">
+          <div class="text-8xl mb-4 animate-bounce">💀</div>
+          <h2 class="text-3xl font-bold text-red-600 mb-2">ÉLIMINÉ!</h2>
+          <p class="text-xl text-gray-700 mb-4">Tu as atteint 0 points</p>
+        </div>
+
+        <!-- Message d'élimination -->
+        <div class="bg-red-50 border-2 border-red-200 rounded-lg p-6 mb-6">
+          <h3 class="text-lg font-semibold text-red-800 mb-2">🚨 Game Over</h3>
+          <p class="text-red-700">
+            Tes points sont tombés à zéro. Tu es éliminé de cette partie mais tu peux continuer à regarder les autres joueurs!
+          </p>
+        </div>
+
+        <!-- Statistiques personnelles -->
+        <div class="bg-gray-100 rounded-lg p-4 mb-6">
+          <h4 class="font-semibold text-gray-800 mb-2">Tes statistiques</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p class="text-gray-600">Questions répondues</p>
+              <p class="font-bold">{{ questionsAnswered }}</p>
+            </div>
+            <div>
+              <p class="text-gray-600">Bonnes réponses</p>
+              <p class="font-bold text-green-600">{{ correctAnswers }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spectateur mode -->
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+          <h4 class="font-semibold text-blue-800 mb-2">👀 Mode Spectateur</h4>
+          <p class="text-blue-700 text-sm">
+            Tu peux maintenant regarder le reste de la partie en tant que spectateur.
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-4 justify-center">
+          <button
+            @click="watchAsSpectator"
+            class="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            👀 Regarder la suite
+          </button>
+          <button
+            @click="backToHome"
+            class="px-6 py-3 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            🏠 Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode spectateur -->
+    <div v-else-if="gameStatus === 'spectator'" class="flex items-center justify-center min-h-screen">
+      <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+        <!-- Header spectateur -->
+        <div class="bg-blue-100 border-2 border-blue-300 rounded-lg p-4 mb-6 text-center">
+          <h2 class="text-xl font-bold text-blue-800 mb-2">👀 Mode Spectateur</h2>
+          <p class="text-blue-700">Tu regardes la partie en cours...</p>
+        </div>
+
+        <!-- Question actuelle pour spectateur -->
+        <div v-if="currentQuestion" class="mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <div class="text-lg font-semibold">
+              Question {{ currentQuestion.questionNumber }}/{{ currentQuestion.totalQuestions }}
+            </div>
+            <div class="text-lg font-semibold">
+              Temps: <span class="text-2xl" :class="timeRemaining <= 5 ? 'text-red-600 animate-pulse' : 'text-green-600'">
+                {{ timeRemaining }}s
+              </span>
+            </div>
+          </div>
+
+          <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">
+            {{ currentQuestion.question }}
+          </h3>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div
+              v-for="(option, index) in currentQuestion.options"
+              :key="index"
+              class="p-4 rounded-lg bg-gray-100 text-center opacity-60"
+            >
+              {{ option }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Joueurs restants -->
+        <div v-if="activePlayers.length > 0" class="mb-6">
+          <h4 class="font-semibold text-gray-800 mb-3">Joueurs encore en vie</h4>
+          <div class="space-y-2">
+            <div
+              v-for="player in activePlayers"
+              :key="player.id"
+              class="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+            >
+              <span class="font-medium">{{ player.name }}</span>
+              <span class="font-bold text-blue-600">{{ player.score }} pts</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          @click="backToHome"
+          class="w-full px-6 py-3 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          Quitter le spectateur
+        </button>
+      </div>
+    </div>
+
+    <!-- Question en cours (joueur actif) -->
     <div v-else-if="gameStatus === 'question' && currentQuestion" class="flex items-center justify-center min-h-screen">
       <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
         <!-- Header avec score et timer -->
         <div class="flex justify-between items-center mb-6">
           <div class="text-lg font-semibold">
-            Score: <span class="text-2xl text-blue-600">{{ playerScore }}</span> points
+            Score: <span class="text-2xl" :class="playerScore <= 1 ? 'text-red-600 animate-pulse' : 'text-blue-600'">
+              {{ playerScore }}
+            </span> points
+            <div v-if="playerScore <= 1" class="text-xs text-red-600 font-bold mt-1">
+              ⚠️ ATTENTION! Une mauvaise réponse = ÉLIMINATION!
+            </div>
           </div>
           <div class="text-lg font-semibold">
             Question {{ currentQuestion.questionNumber }}/{{ currentQuestion.totalQuestions }}
@@ -56,6 +181,8 @@
                 ? 'bg-blue-500 text-white scale-105 shadow-lg'
                 : hasAnswered
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
+                : playerScore <= 1
+                ? 'bg-red-50 border-2 border-red-200 hover:bg-red-100 hover:scale-105 cursor-pointer shadow-md'
                 : 'bg-gray-100 hover:bg-blue-100 hover:scale-105 cursor-pointer shadow-md'
             ]"
           >
@@ -89,17 +216,34 @@
             <div class="text-6xl mb-2">❌</div>
             <p class="text-2xl font-bold">{{ myResult && myResult.answered ? 'Mauvaise réponse' : 'Pas de réponse' }}</p>
             <p class="text-lg mt-2">-1 point</p>
+            <div v-if="playerScore === 0" class="mt-4 p-4 bg-red-100 border-2 border-red-300 rounded-lg">
+              <p class="text-red-800 font-bold">⚠️ Tu seras éliminé à la fin de ce résultat!</p>
+            </div>
           </div>
         </div>
 
         <!-- Score actuel -->
         <div class="bg-gray-100 rounded-lg p-4 mb-6">
           <p class="text-lg text-gray-600">Ton score actuel</p>
-          <p class="text-3xl font-bold text-gray-800">{{ playerScore }} points</p>
+          <p class="text-3xl font-bold" :class="playerScore === 0 ? 'text-red-600' : 'text-gray-800'">
+            {{ playerScore }} points
+          </p>
+        </div>
+
+        <!-- Éliminations annoncées -->
+        <div v-if="eliminatedInThisRound.length > 0" class="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-6">
+          <h4 class="font-bold text-red-800 mb-2">Joueurs éliminés ce tour :</h4>
+          <div class="space-y-1">
+            <p v-for="eliminated in eliminatedInThisRound" :key="eliminated.playerId" class="text-red-700">
+              💀 {{ eliminated.playerName }}
+            </p>
+          </div>
         </div>
 
         <!-- Compte à rebours -->
-        <p class="text-gray-500">Prochaine question dans {{ countdownToNext }} secondes...</p>
+        <p class="text-gray-500">
+          {{ playerScore === 0 ? 'Élimination dans' : 'Prochaine question dans' }} {{ countdownToNext }} secondes...
+        </p>
       </div>
     </div>
 
@@ -108,18 +252,36 @@
       <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
         <h2 class="text-3xl font-bold mb-6">Partie terminée!</h2>
         
-        <!-- Message de victoire/défaite -->
+        <!-- Message selon le statut du joueur -->
         <div class="mb-6">
-          <div v-if="isWinner" class="text-yellow-500">
+          <!-- Joueur éliminé - Priorité absolue -->
+          <div v-if="wasEliminated" class="text-red-500">
+            <div class="text-8xl mb-4 animate-bounce">💀</div>
+            <p class="text-3xl font-bold">Tu as été éliminé!</p>
+            <p class="text-lg mt-2">Game Over - 0 points</p>
+            <div class="bg-red-100 border-2 border-red-300 rounded-lg p-4 mt-4">
+              <p class="text-red-800 font-bold">Tu es tombé à 0 points et as été éliminé de la partie</p>
+            </div>
+          </div>
+          <!-- Gagnant - Seulement si pas éliminé -->
+          <div v-else-if="isWinner" class="text-yellow-500">
             <div class="text-6xl mb-2">🏆</div>
             <p class="text-2xl font-bold">Félicitations!</p>
             <p class="text-lg">Tu as gagné!</p>
           </div>
+          <!-- Autres joueurs - Seulement si pas éliminé -->
           <div v-else class="text-blue-500">
             <div class="text-6xl mb-2">🎯</div>
             <p class="text-2xl font-bold">Bien joué!</p>
             <p class="text-lg">Tu es {{ playerPosition }}{{ getPositionSuffix(playerPosition) }}</p>
           </div>
+        </div>
+        
+        <!-- Raison de fin -->
+        <div v-if="gameEndReason === 'elimination'" class="bg-yellow-100 border border-yellow-400 rounded-lg p-4 mb-6">
+          <p class="text-yellow-800 font-medium">
+            🚨 Partie terminée par élimination
+          </p>
         </div>
         
         <!-- Classement final -->
@@ -131,16 +293,23 @@
               :key="player.playerId"
               :class="[
                 'flex justify-between items-center p-3 rounded-lg',
-                player.playerId === $socket.id ? 'bg-blue-100 font-bold' : 'bg-gray-100'
+                player.playerId === $socket.id ? 'bg-blue-100 font-bold border-2 border-blue-300' : 'bg-gray-100',
+                player.eliminated ? 'opacity-60' : ''
               ]"
             >
               <div class="flex items-center space-x-3">
                 <span class="text-lg">
-                  {{ index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.` }}
+                  {{ player.eliminated ? '💀' : (index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`) }}
                 </span>
-                <span>{{ player.playerName }}</span>
+                <span :class="player.eliminated ? 'line-through text-gray-500' : ''">
+                  {{ player.playerName }}
+                  {{ player.playerId === $socket.id ? ' (Toi)' : '' }}
+                </span>
+                <span v-if="player.eliminated" class="text-red-500 text-xs">(Éliminé)</span>
               </div>
-              <span class="text-lg">{{ player.score }} pts</span>
+              <span class="text-lg" :class="player.eliminated ? 'text-red-600' : ''">
+                {{ player.score }} pts
+              </span>
             </div>
           </div>
         </div>
@@ -181,7 +350,7 @@ const { $socket } = useNuxtApp()
 
 // State
 const gameCode = ref('')
-const gameStatus = ref('waiting') // waiting, question, results, ended
+const gameStatus = ref('waiting') // waiting, question, results, ended, eliminated, spectator
 const playerName = ref('')
 const playerScore = ref(7)
 const currentQuestion = ref(null)
@@ -194,15 +363,29 @@ const countdownToNext = ref(10)
 const finalScores = ref([])
 const connected = ref(false)
 const error = ref('')
+const wasEliminated = ref(false)
+const questionsAnswered = ref(0)
+const correctAnswers = ref(0)
+const eliminatedInThisRound = ref([])
+const activePlayers = ref([])
+const gameEndReason = ref('')
 
 // Computed
 const isWinner = computed(() => {
-  if (!finalScores.value.length) return false
-  return finalScores.value[0]?.playerId === $socket.id
+  if (!finalScores.value.length || wasEliminated.value) return false
+  const winner = finalScores.value.find(player => !player.eliminated)
+  return winner?.playerId === $socket.id
 })
 
 const playerPosition = computed(() => {
-  const index = finalScores.value.findIndex(player => player.playerId === $socket.id)
+  if (wasEliminated.value) {
+    // Pour les joueurs éliminés, calculer la position parmi tous les joueurs
+    const index = finalScores.value.findIndex(player => player.playerId === $socket.id)
+    return index + 1
+  }
+  // Pour les joueurs actifs, calculer la position parmi les non-éliminés
+  const activePlayers = finalScores.value.filter(player => !player.eliminated)
+  const index = activePlayers.findIndex(player => player.playerId === $socket.id)
   return index + 1
 })
 
@@ -212,11 +395,16 @@ const submitAnswer = (answer) => {
   
   hasAnswered.value = true
   selectedAnswer.value = answer
+  questionsAnswered.value++
   
   $socket.emit('submit-answer', {
     gameId: gameCode.value,
     answer: answer
   })
+}
+
+const watchAsSpectator = () => {
+  gameStatus.value = 'spectator'
 }
 
 const backToHome = () => {
@@ -272,6 +460,7 @@ onMounted(() => {
   $socket.on('joined-room', ({ players }) => {
     gameStatus.value = 'waiting'
     error.value = ''
+    activePlayers.value = players
   })
 
   $socket.on('game-started-player', () => {
@@ -279,27 +468,59 @@ onMounted(() => {
   })
 
   $socket.on('new-question', (question) => {
-    gameStatus.value = 'question'
+    // Ne pas changer le status si le joueur est éliminé
+    if (gameStatus.value !== 'eliminated') {
+      gameStatus.value = 'question'
+    }
     currentQuestion.value = question
     timeRemaining.value = question.timeRemaining
     hasAnswered.value = false
     selectedAnswer.value = null
     questionResults.value = null
     myResult.value = null
+    eliminatedInThisRound.value = []
   })
 
   $socket.on('time-update', ({ timeRemaining: time }) => {
     timeRemaining.value = time
   })
 
-  $socket.on('question-results', ({ correctAnswer, results }) => {
-    gameStatus.value = 'results'
+  $socket.on('question-results', ({ correctAnswer, results, eliminatedPlayers }) => {
     questionResults.value = { correctAnswer, results }
     
     // Trouver mon résultat
     myResult.value = results.find(r => r.playerId === $socket.id)
     if (myResult.value) {
       playerScore.value = myResult.value.newScore
+      if (myResult.value.isCorrect) {
+        correctAnswers.value++
+      }
+      
+      // Vérifier si je suis éliminé
+      if (myResult.value.eliminated || myResult.value.newScore <= 0) {
+        wasEliminated.value = true
+        // Attendre la fin du compte à rebours avant de passer en mode éliminé
+        setTimeout(() => {
+          gameStatus.value = 'eliminated'
+        }, 10000) // 10 secondes pour voir les résultats
+      }
+    }
+    
+    // Joueurs éliminés ce tour
+    if (eliminatedPlayers && eliminatedPlayers.length > 0) {
+      eliminatedInThisRound.value = eliminatedPlayers
+    }
+    
+    // Mettre à jour la liste des joueurs actifs
+    activePlayers.value = results.filter(r => !r.eliminated).map(r => ({
+      id: r.playerId,
+      name: r.playerName,
+      score: r.newScore
+    }))
+    
+    // Ne changer le status que si le joueur n'est pas éliminé
+    if (gameStatus.value !== 'eliminated') {
+      gameStatus.value = 'results'
     }
     
     // Compte à rebours pour la prochaine question
@@ -312,9 +533,10 @@ onMounted(() => {
     }, 1000)
   })
 
-  $socket.on('game-ended', ({ finalScores: scores }) => {
+  $socket.on('game-ended', ({ finalScores: scores, winner, reason }) => {
     gameStatus.value = 'ended'
     finalScores.value = scores
+    gameEndReason.value = reason
   })
 
   // Si déjà connecté, rejoindre immédiatement
@@ -351,7 +573,26 @@ onUnmounted(() => {
   }
 }
 
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -20px, 0);
+  }
+  70% {
+    transform: translate3d(0, -10px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
 .animate-pulse {
   animation: pulse 1s ease-in-out infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
 }
 </style>
