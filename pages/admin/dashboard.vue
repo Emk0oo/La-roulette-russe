@@ -54,7 +54,7 @@
             >
               <div class="flex items-center space-x-3">
                 <div
-                  class="w-12 h-12 bg-white rounded-full flex items-center justify-center"
+                    class="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden"
                 >
                   <span class="text-2xl">{{ getPlayerEmoji(player.id) }}</span>
                 </div>
